@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+      "declaration": true,
+      "target": "es2015",
+      "module": "commonjs",
+      "strict": true,
+      "esModuleInterop": true,
+      "allowJs": false,
+      "outDir": "dist",
+      "rootDir": "src"
+    },
+    "exclude": ["tests", "dist"]
+}
