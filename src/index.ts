@@ -9,7 +9,7 @@ type Narrow<T, N> = T extends { kind: N } ? T : never;
 type NarrowOption<T> = T extends null ? never : T
 type Events = {subscribers: any[], children: any, discriminants: any}
 type Match<T, U> = [T] extends [{kind: string}] ? {[P in T["kind"]]: (v: Stayt<T & {kind: P}>) => U} : never
-type MapFn<T, U> = [keyof T & number] extends [never] ? never : (v: Stayt<T[keyof T & number]>) => U
+type MapFn<T, U> = [keyof T & number] extends [never] ? never : (v: Stayt<T[keyof T & number]>, i?: number) => U
 
 export class Stayt<T>{
     data: any
@@ -63,7 +63,7 @@ export class Stayt<T>{
 
     map<U>(f: MapFn<T, U>): U[]{
         return (this as any as Stayt<any[]>).get().map((_, i) =>
-            f((this as any as Stayt<any[]>).index(i))
+            f((this as any as Stayt<any[]>).index(i), i)
         )
     }
 
