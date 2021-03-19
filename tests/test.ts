@@ -1,12 +1,31 @@
-import {Stayt} from '../src/index'
+import {Stayt, mirror} from '../src/index'
 
 type Data = {object: {kind: "array", array: number[]} | {kind: "tuple", tuple: [string, number]}}
 
 {
     const state: Stayt<Data> = new Stayt({object: {kind: "array", array: [5]}})
-    const array = state.prop("object").disc("array").prop("array").index(0)
+    const val = state.prop("object").disc("array").prop("array").index(0)
 
-    test('Test get through discriminated union and props', () => expect(array.get()).toBe(5))
+    test('Test get through discriminated union and props', () => expect(val.get()).toBe(5))
+}
+{
+    const state: Stayt<Data> = new Stayt({object: {kind: "array", array: [5]}})
+    const mirr: Stayt<{nested: Data}> = new Stayt({nested: {object: {kind: "array", array: [5]}}})
+    mirror(state, mirr.prop("nested"))
+    const val = state.prop("object").disc("array").prop("array").index(0)
+    val.modify(_ => 6)
+
+    test('Test mirror', () => expect(mirr.prop("nested").prop("object").disc("array").prop("array").index(0).get()).toBe(6))
+}
+{
+    const state: Stayt<Data> = new Stayt({object: {kind: "array", array: [5]}})
+    const mirr: Stayt<{nested: Data}> = new Stayt({nested: {object: {kind: "array", array: [5]}}})
+    const handle = mirror(state, mirr.prop("nested"))
+    const val = state.prop("object").disc("array").prop("array").index(0)
+    state.unsubscribe(handle)
+    val.modify(_ => 6)
+
+    test('Test mirror unsubscribe', () => expect(mirr.prop("nested").prop("object").disc("array").prop("array").index(0).get()).toBe(5))
 }
 {
     const state: Stayt<Data> = new Stayt({object: {kind: "array", array: [5]}})

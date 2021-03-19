@@ -88,6 +88,13 @@ export class Stayt<T>{
     }
 }
 
+export const mirror = <T extends any>(source: Stayt<T>, dest: Stayt<T>): ((s: T) => unknown) => {
+    const f = (s: T) => dest.modify(_ => s)
+    source.subscribe(f)
+    dest.modify(_ => source.get())
+    return f
+}
+
 const narrowEvents = (events: Events, lens: Lens) => {
     let temp: Events = events;
     lens.forEach(f => {
@@ -298,7 +305,7 @@ const notify = (events: Events, old: any, nw: any) =>{
     }
     for(const key of Object.keys(events.discriminants)){
         const cevents = events.discriminants[key]
-        if(nw.kind === key)
+        if(nw?.kind === key)
             notify(cevents, old, nw)
     }
 }
