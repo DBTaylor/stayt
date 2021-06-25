@@ -286,11 +286,6 @@ const _modify = <T>(state: Stayt<T>, fn: (s: T) => T) => {
         state.data[0] = newObj
         let events = state.events;
         let obj = state.data[0]
-        const isNull = obj === null
-        if(events.null !== isNull){
-            events.nullSubscribers.forEach((s: any) => s(isNull))
-            events.null = isNull
-        }
         events.subscribers.forEach((s: any) => s(obj))
         state.lens.forEach(f => {
             if(f.kind === "prop"){
@@ -308,6 +303,11 @@ const _modify = <T>(state: Stayt<T>, fn: (s: T) => T) => {
                 events.subscribers.forEach((s: any) => s(obj))
             }
         })
+        const isNull = obj === null
+        if(events.null !== isNull){
+            events.nullSubscribers.forEach((s: any) => s(isNull))
+            events.null = isNull
+        }
         if(obj !== undefined)
             notify(narrowEvents(state.events, state.lens), old, obj)
     }

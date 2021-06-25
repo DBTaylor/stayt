@@ -45,29 +45,43 @@ type Data = {object: {kind: "array", array: number[]} | {kind: "tuple", tuple: [
     test('Test subscribe', () => expect(x).toBe(7))
 }
 {
-    const state: Stayt<number | null> = new Stayt(5)
+    const state = new Stayt(5 as number | null)
     let x = false
     let y = false
     const f = n => {x = n}
     state.subscribeNull(f)
     state.subscribeNull(n => y = n)
-    state.modify(n => n + 1)
+    state.modify(n => n)
     state.unsubscribeNull(f)
     state.modify(n => null)
 
     test('Test subscribeNull', () => expect([x, y]).toStrictEqual([false, true]))
 }
 {
-    const state: Stayt<{x: number | null}> = new Stayt({x: 5})
+    const state = new Stayt({x: 5} as {x: number | null})
     const num = state.prop("x")
     let x = false
     let y = false
     const f = n => {x = n}
     num.subscribeNull(f)
     num.subscribeNull(n => y = n)
-    state.modify(obj => ({x: obj.x + 1}))
+    state.modify(obj => ({...obj}))
     num.unsubscribeNull(f)
     state.modify(n => ({x: null}))
+
+    test('Test subscribeNull', () => expect([x, y]).toStrictEqual([false, true]))
+}
+{
+    const state = new Stayt({x: 5} as {x: number | null})
+    const num = state.prop("x")
+    let x = false
+    let y = false
+    const f = n => {x = n}
+    num.subscribeNull(f)
+    num.subscribeNull(n => y = n)
+    num.modify(n => n)
+    num.unsubscribeNull(f)
+    num.modify(n => null)
 
     test('Test subscribeNull', () => expect([x, y]).toStrictEqual([false, true]))
 }
