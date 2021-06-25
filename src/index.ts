@@ -7,7 +7,7 @@ type Lens =
 
 type Narrow<T, N> = T extends { kind: N } ? T : never;
 type NarrowOption<T> = T extends null ? never : T
-type Events = {subscribers: any[], children: any, discriminants: any}
+type Events = {subscribers: any[], nullSubscribers: any[], children: any, discriminants: any, null?: boolean}
 type Match<T, U> = [T] extends [{kind: string}] ? {[P in T["kind"]]: (v: Stayt<T & {kind: P}>) => U} : never
 type MapFn<T, U> = [keyof T & number] extends [never] ? never : (v: Stayt<T[keyof T & number]>, i: number) => U
 
@@ -17,7 +17,7 @@ export class Stayt<T>{
     lens: Lens
     constructor(data: T, clone?: boolean, events?: any, lens?: Lens){
         this.data = clone ? data : [data]
-        this.events = events ? events : {subscribers: [], children: {}, discriminants: {}}
+        this.events = events ? events : {subscribers: [], children: {}, discriminants: {}, nullSubscribers:[]}
         this.lens = lens ? lens : []
         this.prop = this.prop.bind(this)
         this.option = this.option.bind(this)
@@ -31,6 +31,8 @@ export class Stayt<T>{
         this.modify = this.modify.bind(this)
         this.subscribe = this.subscribe.bind(this)
         this.unsubscribe = this.unsubscribe.bind(this)
+        this.subscribeNull = this.subscribeNull.bind(this)
+        this.unsubscribeNull = this.unsubscribeNull.bind(this)
     }
 
     prop<U extends keyof T & (string | number)>(prop: U): Stayt<T[U]>{
@@ -86,6 +88,14 @@ export class Stayt<T>{
     unsubscribe(f: (s: T) => unknown){
         _unsubscribe(this, f)
     }
+
+    subscribeNull(f: (s: boolean) => unknown){
+        _subscribeNull(this, f)
+    }
+
+    unsubscribeNull(f: (s: boolean) => unknown){
+        _unsubscribeNull(this, f)
+    }
 }
 
 export const mirror = <T extends any>(source: Stayt<T>, dest: Stayt<T>): ((s: T) => unknown) => {
@@ -129,7 +139,7 @@ const _prop = <T extends string | number>(prop: T) => <U>(state: Stayt<{[P in T]
     }
     const events = narrowEvents(state.events, state.lens)
     if(events.children[prop] === undefined)
-        events.children[prop] = {subscribers: [], children: {}, discriminants: {}}
+        events.children[prop] = {subscribers: [], children: {}, discriminants: {}, nullSubscribers:[]}
     const newStayt: Stayt<U> = new Stayt(
         state.data,
         true,
@@ -170,7 +180,7 @@ const _disc = <T extends string>(disc: T) => <V>(state: Stayt<V & {kind: T}>) =>
     }
     const events = narrowEvents(state.events, state.lens)
     if(events.discriminants[disc] === undefined)
-        events.discriminants[disc] = {subscribers: [], children: {}, discriminants: {}}
+        events.discriminants[disc] = {subscribers: [], children: {}, discriminants: {}, nullSubscribers:[]}
     const newStayt: Stayt<Narrow<V, T>> = new Stayt(
         state.data,
         true,
@@ -195,7 +205,7 @@ const _index = (index: number) => <T>(state: Stayt<T>) => {
     }
     const events = narrowEvents(state.events, state.lens)
     if(events.children[index] === undefined)
-        events.children[index] = {subscribers: [], children: {}, discriminants: {}}
+        events.children[index] = {subscribers: [], children: {}, discriminants: {}, nullSubscribers:[]}
     const newStayt: Stayt<T[keyof T & number]> = new Stayt(
         state.data,
         true,
@@ -276,6 +286,11 @@ const _modify = <T>(state: Stayt<T>, fn: (s: T) => T) => {
         state.data[0] = newObj
         let events = state.events;
         let obj = state.data[0]
+        const isNull = obj === null
+        if(events.null !== isNull){
+            events.nullSubscribers.forEach((s: any) => s(isNull))
+            events.null = isNull
+        }
         events.subscribers.forEach((s: any) => s(obj))
         state.lens.forEach(f => {
             if(f.kind === "prop"){
@@ -305,6 +320,11 @@ const notify = (events: Events, old: any, nw: any) =>{
             const cnew = nw[key]
             if(cnew !== undefined && cnew !== cold){
                 const cevents = events.children[key]
+                const isNull = cnew === null
+                if(cevents.null !== isNull){
+                    cevents.nullSubscribers.forEach((s: any) => s(isNull))
+                    cevents.null = isNull
+                }
                 cevents.subscribers.forEach((s: any) => s(cnew))
                 notify(cevents, cold, cnew)
             }
@@ -323,5 +343,14 @@ const _subscribe = <T>(state: Stayt<T>, f: (s: T) => unknown) =>{
 
 const _unsubscribe = <T>(state: Stayt<T>, f: (s: T) => unknown) =>{
     const subs = narrowEvents(state.events, state.lens).subscribers
+    subs.splice(subs.findIndex(fn => fn === f), 1)
+}
+
+const _subscribeNull = <T>(state: Stayt<T>, f: (s: boolean) => unknown) =>{
+    narrowEvents(state.events, state.lens).nullSubscribers.push(f)
+}
+
+const _unsubscribeNull = <T>(state: Stayt<T>, f: (s: boolean) => unknown) =>{
+    const subs = narrowEvents(state.events, state.lens).nullSubscribers
     subs.splice(subs.findIndex(fn => fn === f), 1)
 }

@@ -45,6 +45,33 @@ type Data = {object: {kind: "array", array: number[]} | {kind: "tuple", tuple: [
     test('Test subscribe', () => expect(x).toBe(7))
 }
 {
+    const state: Stayt<number | null> = new Stayt(5)
+    let x = false
+    let y = false
+    const f = n => {x = n}
+    state.subscribeNull(f)
+    state.subscribeNull(n => y = n)
+    state.modify(n => n + 1)
+    state.unsubscribeNull(f)
+    state.modify(n => null)
+
+    test('Test subscribeNull', () => expect([x, y]).toStrictEqual([false, true]))
+}
+{
+    const state: Stayt<{x: number | null}> = new Stayt({x: 5})
+    const num = state.prop("x")
+    let x = false
+    let y = false
+    const f = n => {x = n}
+    num.subscribeNull(f)
+    num.subscribeNull(n => y = n)
+    state.modify(obj => ({x: obj.x + 1}))
+    num.unsubscribeNull(f)
+    state.modify(n => ({x: null}))
+
+    test('Test subscribeNull', () => expect([x, y]).toStrictEqual([false, true]))
+}
+{
     const state: Stayt<Data> = new Stayt({object: {kind: "array", array: [5]}})
     const array = state.prop("object").disc("array").prop("array").index(0)
     let x = array.get()
@@ -66,7 +93,7 @@ type Data = {object: {kind: "array", array: number[]} | {kind: "tuple", tuple: [
     test('Test state cache', () => expect(array).toBe(array2))
 }
 {
-    const state: Stayt<{option?: string}> = new Stayt({option: "object"})
+    const state: Stayt<{option: string | null}> = new Stayt({option: "object"})
     const option = state.prop("option").if(v =>
         v.get()
     )
@@ -74,12 +101,12 @@ type Data = {object: {kind: "array", array: number[]} | {kind: "tuple", tuple: [
     test('Test if', () => expect(option).toBe("object"))
 }
 {
-    const state: Stayt<{option?: string}> = new Stayt({})
+    const state: Stayt<{option: string | null}> = new Stayt({option: null})
     const option = state.prop("option").if(v =>
         v.get()
     )
 
-    test('Test if', () => expect(option).toBe(undefined))
+    test('Test if', () => expect(option).toBe(null))
 }
 {
     const state: Stayt<Data> = new Stayt({object: {kind: "array", array: [5]}})
@@ -118,7 +145,7 @@ type Data = {object: {kind: "array", array: number[]} | {kind: "tuple", tuple: [
     test('Test map', () => expect(n).toStrictEqual(["abc", "5"]))
 }
 {
-    const state = new Stayt({num: 1, str: "abc", bool: true})
+    const state = new Stayt({num: 1, str: "abc", bool: true as boolean})
     const num = state.prop("num")
     const str = state.prop("str")
     const bool = state.prop("bool")
@@ -132,7 +159,7 @@ type Data = {object: {kind: "array", array: number[]} | {kind: "tuple", tuple: [
     test('Test downstream subscribe', () => expect([x, y, z]).toStrictEqual([5, "", false]))
 }
 {
-    const state = new Stayt({num: 1, object: {bool: true, str: "abc"}})
+    const state = new Stayt({num: 1, object: {bool: true as boolean, str: "abc"}})
     const num = state.prop("num")
     const str = state.prop("object").prop("str")
     const bool = state.prop("object").prop("bool")
