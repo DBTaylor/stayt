@@ -95,6 +95,13 @@ export const mirror = <T extends any>(source: Stayt<T>, dest: Stayt<T>): ((s: T)
     return f
 }
 
+export const map = <T extends any, U extends any>(source: Stayt<T>, dest: Stayt<U>, f: (s: T) => ((s: U) => U)): ((s: T) => unknown) => {
+    const g = (s: T) => dest.modify(f(s))
+    source.subscribe(f)
+    dest.modify(f(source.get()))
+    return g
+}
+
 const narrowEvents = (events: Events, lens: Lens) => {
     let temp: Events = events;
     lens.forEach(f => {
